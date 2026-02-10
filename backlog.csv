@@ -1,0 +1,13 @@
+priority,task_number,title,description,acceptance_test,est_hours
+P0,1,Set up project skeleton + FastAPI + Streamlit,Create repo structure FastAPI app Streamlit UI shell Docker dev setup basic health endpoint,curl /health returns 200; Streamlit page renders,2
+P0,2,Implement document ingestion pipeline,Unstructured.io parser for PDF/PPTX/TXT → LangChain chunking → ChromaDB storage,Upload sample PDF → chunks stored in ChromaDB → verify retrieval,3
+P0,3,Implement YouTube transcript ingestion,youtube-transcript-api fetch → chunk → embed → store; faster-whisper fallback,Paste YouTube URL → transcript extracted → chunks searchable,2
+P0,4,Build concept extraction + graph construction,LLM-based triple extraction from chunks → clustering → NetworkX graph,Ingest document → concept graph with ≥10 nodes and edges generated,4
+P0,5,Implement quiz generation endpoint,LLM prompt QG with MCQ + short answer; distractor generation,Request 5 questions for a concept → valid MCQs with 4 options returned,3
+P0,6,Build quiz submission + scoring,Accept answers compute correctness update mastery scores in SQLite,Submit quiz → scores returned → mastery_scores table updated,2
+P1,7,Implement weak-topic detection,Compute M(s c) mastery score using hybrid formula; flag topics below 0.4,After 3 quizzes → weak topics list reflects actual performance,3
+P1,8,Build study recommendations endpoint,Query mastery scores + FSRS due dates → prioritized concept list with sources,Get recommendations → returns sorted list with reasons and source references,2
+P1,9,Build Streamlit concept graph visualization,Interactive graph visualization using pyvis or streamlit-agraph; click concept → see sources,Concept graph renders; nodes colored by mastery; click shows detail,3
+P1,10,Build Streamlit quiz UI,Quiz-taking interface: show questions collect answers + time show results,Student can take quiz through UI; results display with explanations,3
+P2,11,Build Streamlit dashboard,Mastery heatmap weak topics list study streak recommendation cards,Dashboard renders all components with real data,3
+P2,12,End-to-end testing + demo prep,Integration tests sample data pipeline demo script README,Full flow: upload → graph → quiz → weak topic → recommendation works end-to-end,2

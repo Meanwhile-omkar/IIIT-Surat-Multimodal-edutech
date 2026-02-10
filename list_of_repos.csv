@@ -1,0 +1,21 @@
+rank,name,url,license,summary,stars,last_active,hackathon_ready
+1,langchain-ai/langchain,https://github.com/langchain-ai/langchain,MIT,LLM app framework: chains agents RAG pipelines document loaders,~100k,2025,Yes
+2,run-llama/llama_index,https://github.com/run-llama/llama_index,MIT,Data framework for LLM apps: indexing retrieval query engines,~38k,2025,Yes
+3,deepset-ai/haystack,https://github.com/deepset-ai/haystack,Apache 2.0,AI orchestration framework for RAG QA semantic search pipelines,~18k,2025,Yes
+4,chroma-core/chroma,https://github.com/chroma-core/chroma,Apache 2.0,Open-source embedding database zero-config Python vector store,~16k,2025,Yes
+5,jdepoix/youtube-transcript-api,https://github.com/jdepoix/youtube-transcript-api,MIT,Get YouTube transcripts/subtitles without API key or browser,~4k,2025,Yes
+6,openai/whisper,https://github.com/openai/whisper,MIT,General-purpose speech recognition model (local offline),~72k,2024,Yes
+7,SYSTRAN/faster-whisper,https://github.com/SYSTRAN/faster-whisper,MIT,CTranslate2-based Whisper 4x faster with same accuracy,~13k,2025,Yes
+8,UKPLab/sentence-transformers,https://github.com/UKPLab/sentence-transformers,Apache 2.0,State-of-the-art text and image embeddings (all-MiniLM BGE E5),~16k,2025,Yes
+9,facebookresearch/faiss,https://github.com/facebookresearch/faiss,MIT,Efficient similarity search and clustering of dense vectors,~32k,2025,Yes
+10,Unstructured-IO/unstructured,https://github.com/Unstructured-IO/unstructured,Apache 2.0,Universal document ETL: PDF PPTX DOCX HTML to structured elements,~10k,2025,Yes
+11,patil-suraj/question_generation,https://github.com/patil-suraj/question_generation,MIT,Neural question generation using T5 transformers with pipelines,~1.1k,2024,Yes
+12,AuvaLab/itext2kg,https://github.com/AuvaLab/itext2kg,MIT,Incremental knowledge graph construction using LLMs,~500,2025,Yes
+13,open-spaced-repetition/free-spaced-repetition-scheduler,https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler,MIT,FSRS algorithm: modern spaced repetition (20-30% fewer reviews than SM-2),~2k,2025,Yes
+14,KristiyanVachev/Leaf-Question-Generation,https://github.com/KristiyanVachev/Leaf-Question-Generation,MIT,MCQ generation using T5 Transformers easy to use,~200,2024,Yes
+15,Yale-LILY/LectureBank,https://github.com/Yale-LILY/LectureBank,Research,7499 lecture files with 208 prerequisite-annotated topic pairs,~100,2023,Yes
+16,pymupdf/PyMuPDF,https://github.com/pymupdf/PyMuPDF,AGPL-3.0,Fast PDF/XPS text extraction metadata tables images,~5k,2025,Yes
+17,scanny/python-pptx,https://github.com/scanny/python-pptx,MIT,Create/read/update PowerPoint (.pptx) files in Python,~2.3k,2024,Yes
+18,streamlit/streamlit,https://github.com/streamlit/streamlit,Apache 2.0,Fast way to build data apps in Python (UI framework),~37k,2025,Yes
+19,bernardoleite/question-generation-t5-pytorch-lightning,https://github.com/bernardoleite/question-generation-t5-pytorch-lightning,MIT,QG with T5 training/inference/eval scripts included,~100,2024,Yes
+20,ThilinaRajapakse/simpletransformers,https://github.com/ThilinaRajapakse/simpletransformers,Apache 2.0,Simplified Transformers for NER QA classification T5 tasks,~4k,2025,Yes
