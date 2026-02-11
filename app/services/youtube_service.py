@@ -24,13 +24,13 @@ def fetch_transcript(url: str) -> tuple[str, str, str]:
     """
     video_id = extract_video_id(url)
 
-    ytt_api = YouTubeTranscriptApi()
-    transcript_entries = ytt_api.fetch(video_id)
+    # YouTubeTranscriptApi.get_transcript is a static method
+    transcript_entries = YouTubeTranscriptApi.get_transcript(video_id)
 
     # Build full text with timestamps as markers
     parts = []
     for entry in transcript_entries:
-        text = entry.text.strip()
+        text = entry.get("text", "").strip()
         if text:
             parts.append(text)
 

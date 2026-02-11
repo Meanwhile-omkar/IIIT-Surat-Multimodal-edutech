@@ -17,6 +17,13 @@ export async function ingestDocument(file: File, courseId: string) {
   return request("/ingest/document", { method: "POST", body: form });
 }
 
+export async function ingestImage(file: File, courseId: string) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("course_id", courseId);
+  return request("/ingest/image", { method: "POST", body: form });
+}
+
 export async function ingestYoutube(url: string, courseId: string) {
   return request("/ingest/youtube", {
     method: "POST",

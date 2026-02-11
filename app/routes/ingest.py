@@ -8,6 +8,7 @@ from app.models.schemas import Course, Document
 from app.models.api_models import IngestDocumentResponse, IngestYoutubeRequest, IngestYoutubeResponse
 from app.services.ingestion_service import save_upload, parse_document
 from app.services.youtube_service import fetch_transcript
+from app.services.image_service import extract_text_from_image
 from app.services.embedding_service import chunk_text, embed_and_store
 
 router = APIRouter(prefix="/ingest", tags=["ingestion"])
@@ -133,4 +134,67 @@ async def ingest_youtube(
         num_chunks=num_stored,
         concepts_extracted=[],
         transcript_method=method,
+    )
+
+
+@router.post("/image", response_model=IngestDocumentResponse)
+async def ingest_image(
+    file: UploadFile = File(...),
+    course_id: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Upload and process an image (JPEG, PNG) using OCR to extract text."""
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image (JPEG, PNG, etc.)")
+
+    # Read file bytes
+    file_bytes = await file.read()
+
+    # Extract text using OCR
+    try:
+        raw_text = extract_text_from_image(file_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+
+    if not raw_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="No text could be extracted from the image. Make sure the image contains readable text."
+        )
+
+    # Get/create course
+    course = get_or_create_course(db, course_id)
+
+    # Store document record
+    doc = Document(
+        course_id=course.id,
+        filename=file.filename or "image.png",
+        file_type="image",
+        raw_text_length=len(raw_text),
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+
+    # Chunk and embed
+    chunks = chunk_text(raw_text)
+    num_stored = embed_and_store(
+        chunks=chunks,
+        doc_id=doc.id,
+        course_id=course_id,
+        source_type="image",
+        source_name=file.filename or "image.png",
+    )
+
+    doc.num_chunks = num_stored
+    db.commit()
+
+    return IngestDocumentResponse(
+        document_id=doc.id,
+        course_id=course_id,
+        filename=file.filename or "image.png",
+        file_type="image",
+        num_chunks=num_stored,
+        concepts_extracted=[],
     )

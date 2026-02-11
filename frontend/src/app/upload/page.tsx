@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ingestDocument, ingestYoutube, extractConcepts } from "@/lib/api";
+import { ingestDocument, ingestImage, ingestYoutube, extractConcepts } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
 
 export default function UploadPage() {
@@ -25,6 +25,21 @@ export default function UploadPage() {
     try {
       const res = await ingestDocument(file, courseId);
       addResult({ type: "document", ...res });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading("");
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading("Extracting text from image via OCR...");
+    setError("");
+    try {
+      const res = await ingestImage(file, courseId);
+      addResult({ type: "image", ...res });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -65,11 +80,11 @@ export default function UploadPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Upload Study Materials</h1>
         <p className="text-gray-500 mt-1">
-          Upload PDFs, PowerPoints, or paste YouTube URLs. We&apos;ll extract concepts, build a knowledge graph, and generate quizzes.
+          Upload documents, images, or paste YouTube URLs. We&apos;ll extract concepts, build a knowledge graph, and generate quizzes.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Upload Document</CardTitle>
@@ -80,6 +95,21 @@ export default function UploadPage() {
               type="file"
               accept=".pdf,.pptx,.txt,.md"
               onChange={handleFileUpload}
+              disabled={!!loading}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Upload Screenshot</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-500">JPEG, PNG images (OCR)</p>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png,image/jpg"
+              onChange={handleImageUpload}
               disabled={!!loading}
             />
           </CardContent>
@@ -150,6 +180,11 @@ export default function UploadPage() {
                   {r.type === "document" && (
                     <p>
                       <strong>{r.filename}</strong> &mdash; {r.num_chunks} chunks processed
+                    </p>
+                  )}
+                  {r.type === "image" && (
+                    <p>
+                      <strong>{r.filename}</strong> &mdash; {r.num_chunks} chunks extracted via OCR
                     </p>
                   )}
                   {r.type === "youtube" && (

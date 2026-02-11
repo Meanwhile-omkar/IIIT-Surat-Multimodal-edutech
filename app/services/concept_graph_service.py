@@ -183,7 +183,9 @@ def _deduplicate_concepts(concepts: list[str]) -> list[list[str]]:
 
 
 def get_concept_graph(course_id: int, db: Session) -> dict:
-    """Fetch the concept graph for a course from DB."""
+    """Fetch the concept graph for a course from DB with layout coordinates."""
+    import networkx as nx
+
     concepts = db.query(Concept).filter(Concept.course_id == course_id).all()
     if not concepts:
         return {"concepts": [], "edges": []}
@@ -193,9 +195,33 @@ def get_concept_graph(course_id: int, db: Session) -> dict:
         ConceptEdge.source_id.in_(concept_ids)
     ).all()
 
+    # Build networkx graph for layout calculation
+    G = nx.DiGraph()
+    for c in concepts:
+        G.add_node(c.id, name=c.name, importance=c.importance)
+    for e in edges:
+        G.add_edge(e.source_id, e.target_id, relation=e.relation)
+
+    # Calculate layout using force-directed algorithm
+    if len(G.nodes()) > 0:
+        # Use spring layout for nice visual spacing
+        pos = nx.spring_layout(G, k=2, iterations=50, seed=42)
+        # Scale to reasonable pixel coordinates (0-1000 range)
+        for node_id in pos:
+            pos[node_id] = (pos[node_id][0] * 500 + 500, pos[node_id][1] * 500 + 500)
+    else:
+        pos = {}
+
     return {
         "concepts": [
-            {"id": c.id, "name": c.name, "importance": c.importance, "description": c.description}
+            {
+                "id": c.id,
+                "name": c.name,
+                "importance": c.importance,
+                "description": c.description,
+                "x": pos.get(c.id, (500, 500))[0],
+                "y": pos.get(c.id, (500, 500))[1],
+            }
             for c in concepts
         ],
         "edges": [

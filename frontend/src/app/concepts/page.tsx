@@ -4,14 +4,18 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getConceptGraph } from "@/lib/api";
+import { getConceptGraph, getMastery } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
+import { ConceptGraphViz } from "@/components/concept-graph-viz";
 
 interface ConceptNode {
   id: number;
   name: string;
   importance: number;
   description: string | null;
+  x: number;
+  y: number;
+  completed?: boolean;
 }
 
 interface ConceptEdge {
@@ -22,7 +26,7 @@ interface ConceptEdge {
 }
 
 export default function ConceptsPage() {
-  const { courseId } = useSession();
+  const { courseId, studentId } = useSession();
   const [concepts, setConcepts] = useState<ConceptNode[]>([]);
   const [edges, setEdges] = useState<ConceptEdge[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,9 +36,23 @@ export default function ConceptsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await getConceptGraph(courseId);
-      setConcepts(data.concepts || []);
-      setEdges(data.edges || []);
+      const [graphData, masteryData] = await Promise.all([
+        getConceptGraph(courseId),
+        getMastery(studentId, courseId).catch(() => ({ concepts: [] })),
+      ]);
+
+      // Merge completion status
+      const completedIds = new Set(
+        masteryData.concepts?.filter((c: any) => c.completed).map((c: any) => c.concept_id) || []
+      );
+
+      const conceptsWithCompletion = (graphData.concepts || []).map((c: ConceptNode) => ({
+        ...c,
+        completed: completedIds.has(c.id),
+      }));
+
+      setConcepts(conceptsWithCompletion);
+      setEdges(graphData.edges || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -55,12 +73,12 @@ export default function ConceptsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Concept Graph</h1>
         <p className="text-gray-500 mt-1">
-          Visualize how concepts relate. Prerequisites show what to learn first.
+          Visualize how concepts relate. Prerequisites show what to learn first. Node size indicates importance.
         </p>
       </div>
 
       <Button onClick={load} disabled={loading}>
-        {loading ? "Loading..." : "Load Graph"}
+        {loading ? "Loading..." : concepts.length > 0 ? "Refresh" : "Load Graph"}
       </Button>
 
       {error && (
@@ -72,11 +90,19 @@ export default function ConceptsPage() {
       {concepts.length > 0 && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4 text-center">
                 <p className="text-3xl font-bold text-blue-600">{concepts.length}</p>
-                <p className="text-sm text-gray-500">Concepts</p>
+                <p className="text-sm text-gray-500">Total Concepts</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-3xl font-bold text-green-600">
+                  {concepts.filter((c) => c.completed).length}
+                </p>
+                <p className="text-sm text-gray-500">Completed</p>
               </CardContent>
             </Card>
             <Card>
@@ -95,10 +121,13 @@ export default function ConceptsPage() {
             </Card>
           </div>
 
-          {/* Concept nodes */}
+          {/* Interactive Graph Visualization */}
+          <ConceptGraphViz concepts={concepts} edges={edges} />
+
+          {/* Concept nodes list */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Concepts (sorted by importance)</CardTitle>
+              <CardTitle className="text-base">All Concepts (sorted by importance)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -108,12 +137,13 @@ export default function ConceptsPage() {
                     <Badge
                       key={c.id}
                       variant="outline"
-                      className="text-sm py-1 px-3"
+                      className={`text-sm py-1 px-3 ${c.completed ? "bg-green-50 text-green-700 border-green-300" : ""}`}
                       style={{
-                        opacity: 0.4 + c.importance * 0.6,
+                        opacity: c.completed ? 1 : 0.4 + c.importance * 0.6,
                         fontSize: `${0.75 + c.importance * 0.3}rem`,
                       }}
                     >
+                      {c.completed && <span className="mr-1">✓</span>}
                       {c.name}
                     </Badge>
                   ))}
