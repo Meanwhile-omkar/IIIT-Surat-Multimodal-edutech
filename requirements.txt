@@ -8,7 +8,7 @@ langchain==0.3.14
 langchain-community==0.3.14
 langchain-text-splitters==0.3.4
 openai==1.59.3
-youtube-transcript-api==0.6.3
+yt-dlp==2026.2.4
 pymupdf==1.25.3
 python-pptx==1.0.2
 networkx==3.4.2

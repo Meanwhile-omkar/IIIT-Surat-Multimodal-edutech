@@ -93,10 +93,17 @@ async def ingest_youtube(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Could not fetch transcript: {e}")
+        error_msg = str(e)
+        # Provide helpful error message
+        if "no element found" in error_msg.lower():
+            raise HTTPException(
+                status_code=404,
+                detail="Could not access video captions. The video may have captions disabled, be private, or region-restricted. Try a different video with English captions enabled."
+            )
+        raise HTTPException(status_code=404, detail=f"Could not fetch transcript: {error_msg}")
 
     if not full_text.strip():
-        raise HTTPException(status_code=404, detail="Transcript is empty.")
+        raise HTTPException(status_code=400, detail="Transcript was fetched but appears to be empty.")
 
     # Get/create course
     course = get_or_create_course(db, req.course_id)
