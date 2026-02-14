@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { SessionProvider } from "@/lib/session-context";
+import { ThemeProvider } from "@/lib/theme-context";
+import { AppWrapper } from "@/components/app-wrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Study Coach — Multimodal Learning Assistant",
+  title: "KOP AI — Multimodal Learning Assistant",
   description:
     "Upload docs & YouTube → concept graphs → adaptive quizzes → weak-topic detection",
 };
@@ -28,12 +30,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors`}
       >
-        <SessionProvider>
-          <Navbar />
-          <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
-        </SessionProvider>
+        <AppWrapper>
+          <SessionProvider>
+            <ThemeProvider>
+              <Navbar />
+              <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+            </ThemeProvider>
+          </SessionProvider>
+        </AppWrapper>
       </body>
     </html>
   );

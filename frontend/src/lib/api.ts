@@ -96,17 +96,12 @@ export async function getLearnOverview(courseId: string, studentId?: number) {
   return request(`/courses/${courseId}/learn${params}`);
 }
 
-export async function getConceptSummary(courseId: string, conceptId: number) {
-  return request(`/courses/${courseId}/concepts/${conceptId}/summary`);
+export async function getConceptSummary(courseId: string, conceptId: number, mode?: string) {
+  const params = mode ? `?mode=${mode}` : "";
+  return request(`/courses/${courseId}/concepts/${conceptId}/summary${params}`);
 }
 
 // --- Concept verification ---
-export async function generateVerifyQuiz(courseId: string, conceptId: number) {
-  return request(`/courses/${courseId}/concepts/${conceptId}/verify-quiz`, {
-    method: "POST",
-  });
-}
-
 export async function submitCompletion(
   courseId: string,
   conceptId: number,
@@ -136,5 +131,160 @@ export async function explainText(
       mode,
       chat_history: chatHistory,
     }),
+  });
+}
+
+// --- Sessions ---
+export async function startSession(data: {
+  student_id: number;
+  course_id: string;
+  mode: "quick" | "comprehensive";
+  session_name: string;
+  exam_date?: string;
+}) {
+  return request("/sessions/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getSession(sessionId: string) {
+  return request(`/sessions/${sessionId}`);
+}
+
+export async function listStudentSessions(studentId: number) {
+  return request(`/sessions/students/${studentId}/list`);
+}
+
+export async function resumeSession(sessionId: string, courseId: string) {
+  return request(`/sessions/${sessionId}/resume`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ course_id: courseId }),
+  });
+}
+
+// --- Quick Mode ---
+export async function getQuickOverview(courseId: string, studentId: number) {
+  return request(`/courses/${courseId}/quick-overview?student_id=${studentId}`);
+}
+
+export async function markConceptSkimmed(
+  courseId: string,
+  conceptId: number,
+  studentId: number,
+  sessionId?: string
+) {
+  return request(`/courses/${courseId}/concepts/${conceptId}/mark-skimmed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ student_id: studentId, session_id: sessionId }),
+  });
+}
+
+export async function getCheatSheet(courseId: string) {
+  return request(`/courses/${courseId}/cheat-sheet`);
+}
+
+export async function generateVerifyQuiz(courseId: string, conceptId: number, mode?: string) {
+  const params = mode ? `?mode=${mode}` : "";
+  return request(`/courses/${courseId}/concepts/${conceptId}/verify-quiz${params}`, {
+    method: "POST",
+  });
+}
+
+export async function submitConceptCompletion(
+  courseId: string,
+  conceptId: number,
+  studentId: number,
+  answers: { question_id: number; selected: string }[],
+  mode?: string
+) {
+  const params = mode ? `?mode=${mode}` : "";
+  return request(`/courses/${courseId}/concepts/${conceptId}/complete${params}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ student_id: studentId, answers }),
+  });
+}
+
+// --- Study Book ---
+export async function generateStudyBook(courseId: string, studentId: number) {
+  return request(`/books/${courseId}/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ student_id: studentId }),
+  });
+}
+
+export async function getStudyBook(bookId: string) {
+  return request(`/books/${bookId}`);
+}
+
+export async function getStudentBook(studentId: number, courseId: string) {
+  return request(`/books/students/${studentId}/course/${courseId}`);
+}
+
+// --- Flashcards ---
+export async function generateFlashcards(courseId: string) {
+  return request(`/flashcards/${courseId}/generate`, { method: "POST" });
+}
+
+export async function getFlashcards(courseId: string) {
+  return request(`/flashcards/${courseId}`);
+}
+
+// --- Predictions ---
+export async function getPredictedQuestions(courseId: string) {
+  return request(`/predictions/${courseId}`);
+}
+
+// --- Annotations ---
+export async function createAnnotation(data: {
+  student_id: number;
+  course_id: string;
+  concept_id?: number;
+  chunk_reference?: string;
+  annotation_type: "highlight" | "bookmark" | "note";
+  selected_text: string;
+  annotation_text?: string;
+  color?: string;
+}) {
+  return request("/annotations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getStudentAnnotations(
+  studentId: number,
+  filters?: {
+    course_id?: string;
+    concept_id?: number;
+    annotation_type?: string;
+  }
+) {
+  const params = new URLSearchParams();
+  if (filters?.course_id) params.append("course_id", filters.course_id);
+  if (filters?.concept_id) params.append("concept_id", filters.concept_id.toString());
+  if (filters?.annotation_type) params.append("annotation_type", filters.annotation_type);
+
+  const queryString = params.toString();
+  return request(`/annotations/students/${studentId}${queryString ? `?${queryString}` : ""}`);
+}
+
+export async function updateAnnotation(annotationId: number, annotationText: string) {
+  return request(`/annotations/${annotationId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ annotation_text: annotationText }),
+  });
+}
+
+export async function deleteAnnotation(annotationId: number) {
+  return request(`/annotations/${annotationId}`, {
+    method: "DELETE",
   });
 }

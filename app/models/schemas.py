@@ -1,8 +1,9 @@
-"""SQLAlchemy ORM models for the Study Coach database."""
+"""SQLAlchemy ORM models for the KOP AI database."""
 
 import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.core.database import Base
 
@@ -16,6 +17,26 @@ class Course(Base):
 
     documents = relationship("Document", back_populates="course")
     concepts = relationship("Concept", back_populates="course")
+    sessions = relationship("StudySession", back_populates="course")
+
+
+class StudySession(Base):
+    """Tracks a complete study session with mode"""
+    __tablename__ = "study_sessions"
+
+    id = Column(String(36), primary_key=True)  # UUID
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    mode = Column(String(20), nullable=False)  # "quick" or "comprehensive"
+    session_name = Column(String(255), nullable=False)
+    exam_date = Column(Date, nullable=True)  # For quick mode
+    started_at = Column(DateTime, default=func.now())
+    last_accessed = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Relationships
+    student = relationship("Student", back_populates="sessions")
+    course = relationship("Course", back_populates="sessions")
+    quiz_attempts = relationship("QuizAttempt", back_populates="session")
 
 
 class Document(Base):
@@ -85,6 +106,7 @@ class Student(Base):
 
     attempts = relationship("QuizAttempt", back_populates="student")
     mastery_scores = relationship("MasteryScore", back_populates="student")
+    sessions = relationship("StudySession", back_populates="student")
 
 
 class QuizAttempt(Base):
@@ -94,6 +116,7 @@ class QuizAttempt(Base):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=True)
+    session_id = Column(String(36), ForeignKey("study_sessions.id"), nullable=True)
     selected_answer = Column(String(500), nullable=True)
     is_correct = Column(Boolean, nullable=False)
     response_time_ms = Column(Integer, nullable=True)
@@ -101,6 +124,7 @@ class QuizAttempt(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     student = relationship("Student", back_populates="attempts")
+    session = relationship("StudySession", back_populates="quiz_attempts")
 
 
 class MasteryScore(Base):
@@ -114,6 +138,7 @@ class MasteryScore(Base):
     exposure_count = Column(Integer, default=0)
     confidence = Column(Float, default=0.0)
     stability = Column(Float, default=1.0)  # FSRS stability in days
+    session_mode = Column(String(20), nullable=True)  # Track which mode last updated
     last_reviewed = Column(DateTime, nullable=True)
     next_review_due = Column(DateTime, nullable=True)
 
@@ -129,3 +154,48 @@ class ConceptCompletion(Base):
     quiz_score = Column(Float, nullable=False)
     passed = Column(Boolean, nullable=False)
     completed_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class StudyBook(Base):
+    """Generated comprehensive study books for Comprehensive Mode"""
+    __tablename__ = "study_books"
+
+    id = Column(String(36), primary_key=True)  # UUID
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    generated_at = Column(DateTime, default=datetime.datetime.utcnow)
+    content_json = Column(Text, nullable=False)  # Full book structure as JSON
+    total_concepts = Column(Integer, default=0)
+    total_word_count = Column(Integer, default=0)
+    estimated_read_time_minutes = Column(Integer, default=0)
+
+
+class StudentAnnotation(Base):
+    """Student highlights, bookmarks, and notes on study materials"""
+    __tablename__ = "student_annotations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=True)
+    chunk_reference = Column(String(255), nullable=True)  # ChromaDB chunk ID
+    annotation_type = Column(String(20), nullable=False)  # "highlight", "bookmark", "note"
+    selected_text = Column(Text, nullable=False)
+    annotation_text = Column(Text, nullable=True)  # User's note content
+    color = Column(String(20), nullable=True)  # For highlights (yellow, green, blue, etc)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class Flashcard(Base):
+    """Flashcards for quick review with spaced repetition"""
+    __tablename__ = "flashcards"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=True)
+    term = Column(String(500), nullable=False)
+    definition = Column(Text, nullable=False)
+    example = Column(Text, nullable=True)
+    difficulty = Column(String(20), default="medium")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

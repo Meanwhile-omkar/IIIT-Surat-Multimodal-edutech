@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSession } from "@/lib/session-context";
-import { explainText } from "@/lib/api";
+import { explainText, createAnnotation } from "@/lib/api";
+import { Bookmark } from "lucide-react";
 
 interface Props {
   selectedText: string;
@@ -13,6 +14,7 @@ interface Props {
   y: number;
   visible: boolean;
   onDismiss: () => void;
+  conceptId?: number;
 }
 
 export function SelectionToolbar({
@@ -21,8 +23,9 @@ export function SelectionToolbar({
   y,
   visible,
   onDismiss,
+  conceptId,
 }: Props) {
-  const { courseId } = useSession();
+  const { courseId, studentId } = useSession();
   const [mode, setMode] = useState<"idle" | "loading" | "result" | "chat">(
     "idle"
   );
@@ -31,6 +34,8 @@ export function SelectionToolbar({
     { role: string; content: string }[]
   >([]);
   const [chatInput, setChatInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Reset state when selection changes
@@ -40,6 +45,7 @@ export function SelectionToolbar({
       setExplanation("");
       setChatHistory([]);
       setChatInput("");
+      setSavedMessage("");
     }
   }, [selectedText, visible]);
 
@@ -104,12 +110,36 @@ export function SelectionToolbar({
     }
   }
 
-  // Position clamped to viewport
-  const left = Math.max(20, Math.min(x - 150, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 340));
-  const top = Math.max(20, y - 50);
+  async function handleSaveAsNote() {
+    setSaving(true);
+    setSavedMessage("");
+    try {
+      await createAnnotation({
+        student_id: studentId,
+        course_id: courseId,
+        concept_id: conceptId,
+        annotation_type: "note",
+        selected_text: selectedText,
+        annotation_text: explanation,
+        color: "blue",
+      });
+      setSavedMessage("✓ Saved as note!");
+      setTimeout(() => setSavedMessage(""), 2000);
+    } catch (err) {
+      setSavedMessage("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Position above the selection, centered horizontally
+  // Use absolute positioning so it scrolls with the page
+  const toolbarWidth = mode === "idle" ? 300 : 320;
+  const left = Math.max(10, x - toolbarWidth / 2);
+  const top = y - 60; // Position above the selection
 
   const style: React.CSSProperties = {
-    position: "fixed",
+    position: "absolute",
     left: `${left}px`,
     top: `${top}px`,
     zIndex: 1000,
@@ -169,7 +199,21 @@ export function SelectionToolbar({
             <div className="text-sm whitespace-pre-wrap leading-relaxed">
               {explanation}
             </div>
+            {savedMessage && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                {savedMessage}
+              </p>
+            )}
             <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSaveAsNote}
+                disabled={saving}
+              >
+                <Bookmark className="mr-1 h-3 w-3" />
+                {saving ? "Saving..." : "Save as Note"}
+              </Button>
               <Button
                 size="sm"
                 variant="outline"

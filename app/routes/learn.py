@@ -23,6 +23,15 @@ Format your response in markdown with:
 - A simple example or analogy if applicable
 - Keep it concise (200-400 words)"""
 
+SUMMARY_SYSTEM_QUICK = """You are a rapid-fire tutor helping a student study quickly for an exam.
+Given source material, write a concise explanation in bullet-point format.
+
+Format your response as:
+- 4-6 essential bullet points (150-250 words total)
+- Include key facts, formulas, definitions, and brief context
+- Focus on exam-relevant information
+- Keep it scannable but informative"""
+
 SUMMARY_USER = """Explain the concept: "{concept_name}"
 
 Source material:
@@ -81,9 +90,14 @@ def get_learn_overview(
 def get_concept_summary(
     course_id: str,
     concept_id: int,
+    mode: Optional[str] = "comprehensive",
     db: Session = Depends(get_db),
 ):
-    """Generate an LLM summary for a concept using RAG from ingested content."""
+    """Generate an LLM summary for a concept using RAG from ingested content.
+
+    Args:
+        mode: "quick" for 100-150 word bullet points, "comprehensive" for 200-400 words
+    """
     course = resolve_course(course_id, db)
     concept = db.query(Concept).filter(
         Concept.id == concept_id,
@@ -92,8 +106,9 @@ def get_concept_summary(
     if not concept:
         raise HTTPException(status_code=404, detail="Concept not found")
 
-    # RAG: retrieve relevant chunks
-    chunks = query_chunks(concept.name, course_id, n_results=6)
+    # RAG: retrieve relevant chunks (fewer for quick mode)
+    n_chunks = 3 if mode == "quick" else 6
+    chunks = query_chunks(concept.name, course_id, n_results=n_chunks)
     if not chunks:
         return {
             "concept_id": concept_id,
@@ -104,8 +119,11 @@ def get_concept_summary(
 
     context = "\n\n".join([c["text"] for c in chunks])
 
+    # Use appropriate system prompt based on mode
+    system_prompt = SUMMARY_SYSTEM_QUICK if mode == "quick" else SUMMARY_SYSTEM
+
     summary = llm_text(
-        SUMMARY_SYSTEM,
+        system_prompt,
         SUMMARY_USER.format(concept_name=concept.name, context=context[:4000]),
     )
 
@@ -113,6 +131,7 @@ def get_concept_summary(
         "concept_id": concept_id,
         "concept_name": concept.name,
         "summary": summary or "Could not generate summary. Try again.",
+        "mode": mode,
         "sources": [
             {
                 "chunk_id": c["id"],
@@ -128,9 +147,14 @@ def get_concept_summary(
 def generate_verify_quiz(
     course_id: str,
     concept_id: int,
+    mode: Optional[str] = "comprehensive",
     db: Session = Depends(get_db),
 ):
-    """Generate a short verification quiz (5 questions) for a specific concept."""
+    """Generate a verification quiz for a specific concept.
+
+    Args:
+        mode: "quick" for 2-3 questions, "comprehensive" for 5 questions
+    """
     course = resolve_course(course_id, db)
     concept = db.query(Concept).filter(
         Concept.id == concept_id,
@@ -139,13 +163,17 @@ def generate_verify_quiz(
     if not concept:
         raise HTTPException(status_code=404, detail="Concept not found")
 
+    # Adjust question count and difficulty based on mode
+    num_questions = 3 if mode == "quick" else 5
+    difficulty = "easy" if mode == "quick" else "medium"
+
     questions = generate_quiz(
         course_id=course_id,
         db_course_id=course.id,
         db=db,
         concept_id=concept_id,
-        num_questions=5,
-        difficulty="medium",
+        num_questions=num_questions,
+        difficulty=difficulty,
     )
 
     if not questions:
@@ -158,6 +186,7 @@ def generate_verify_quiz(
         "concept_id": concept_id,
         "concept_name": concept.name,
         "questions": questions,
+        "mode": mode,
     }
 
 
@@ -166,9 +195,14 @@ def submit_completion(
     course_id: str,
     concept_id: int,
     req: VerifySubmitRequest,
+    mode: Optional[str] = "comprehensive",
     db: Session = Depends(get_db),
 ):
-    """Submit verification quiz answers. Requires 80% to mark concept as complete."""
+    """Submit verification quiz answers.
+
+    Args:
+        mode: "quick" requires 66% to pass, "comprehensive" requires 80%
+    """
     course = resolve_course(course_id, db)
     concept = db.query(Concept).filter(
         Concept.id == concept_id,
@@ -188,7 +222,10 @@ def submit_completion(
     result = submit_quiz(req.student_id, req.answers, db)
 
     percentage = result.get("percentage", 0)
-    passed = percentage >= 80
+
+    # Pass threshold depends on mode
+    pass_threshold = 66 if mode == "quick" else 80
+    passed = percentage >= pass_threshold
 
     # Record the completion attempt
     completion = ConceptCompletion(
@@ -207,6 +244,8 @@ def submit_completion(
         "total": result.get("total", 0),
         "percentage": percentage,
         "passed": passed,
+        "pass_threshold": pass_threshold,
+        "mode": mode,
         "results": result.get("results", []),
-        "message": "Concept completed!" if passed else f"You need 80% to pass. You scored {percentage}%. Try again!",
+        "message": "Concept completed!" if passed else f"You need {pass_threshold}% to pass. You scored {percentage}%. Try again!",
     }

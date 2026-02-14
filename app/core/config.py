@@ -17,9 +17,13 @@ CHROMA_DIR = str(BASE_DIR / "data" / "chroma_db")
 # Uploads
 UPLOAD_DIR = str(BASE_DIR / "data" / "uploads")
 
-# LLM — OpenRouter
+# LLM — Groq (switched from OpenRouter for better limits)
+GROQ_API_KEY = os.getenv("groq_api_key", "")
+LLM_MODEL = os.getenv("model", "llama-3.3-70b-versatile")
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+
+# Legacy OpenRouter (kept for backward compatibility)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "liquid/lfm-2.5-1.2b-thinking:free")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # Embeddings

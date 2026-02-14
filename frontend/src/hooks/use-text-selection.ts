@@ -36,10 +36,11 @@ export function useTextSelection(containerRef: RefObject<HTMLElement | null>) {
         }
 
         const rect = range.getBoundingClientRect();
+        // Use document coordinates (viewport + scroll offset) for absolute positioning
         setSelection({
           text,
-          x: rect.left + rect.width / 2,
-          y: rect.top,
+          x: rect.left + window.scrollX + rect.width / 2,
+          y: rect.top + window.scrollY,
           visible: true,
         });
       }
